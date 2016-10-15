@@ -1,7 +1,9 @@
 from collections import Counter, defaultdict
+from nltk.corpus import stopwords
 import pandas as pd
 import numpy as np
 import nltk, math, json
+nltk.download("stopwords")
 
 def extract_vocabulary(C, D):
     V = defaultdict(list)
@@ -10,7 +12,7 @@ def extract_vocabulary(C, D):
         print c
         # Get all text (titles) from documents with class c
         D_temporary = D[D.ministerie == c]
-        text = "\n".join(list(D_temporary.titel))
+        text = "\n".join(list(D_temporary.titel)) # + list(D_temporary.vraag) etc?
         # Save all tokens to our dictionary
         V[c] = nltk.word_tokenize(text)
         V["all_classes"] += V[c]
@@ -54,6 +56,13 @@ def apply_multinomial(C, V, prior, condprob, d):
     predicted_class = max(score, key=score.get)
     return predicted_class
 
+def top_10(C, V):
+    dutch_stop = stopwords.words("dutch")
+    for c in C:
+        print "\n" + c[1:]
+        counter_c = Counter(w for w in V[c] if w not in dutch_stop)
+        print counter_c.most_common(10)
+
 if __name__ == '__main__':
     # Change to KVR1000.csv.gz if this becomes too slow for you
     D = pd.read_csv('KVR.csv', sep='\t', encoding='utf-8', index_col=0, 
@@ -74,8 +83,9 @@ if __name__ == '__main__':
     test  = D_filtered.drop(train.index)
 
     V, prior, condprob = train_multinomial(C_filtered, train)
-    
     correct, wrong = 0, 0
+
+    top_10(C, V)
 
     # For each document in the test set, get the text in its title and predict
     # its class 
