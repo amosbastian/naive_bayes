@@ -25,21 +25,21 @@ def train_multinomial(C, D):
     condprob = defaultdict(lambda: defaultdict(float))
     prior = defaultdict(float)
     V = extract_vocabulary(C, D)
-    print V
+    # print V
     for c in C:
-        print "\n" + c
+        # print "\n" + c
         prior[c] = C[c]
         text_c = V[c]
         for t in set(V["all_classes"]):
             T_ct = count_tokens(text_c, t)
             condprob[t][c] = float((T_ct + 1)) / (len(text_c) + len(set(V["all_classes"])))
-            print "P({} | {}) = ({} + 1) / ({} + {}) = {}".format(t, c, T_ct, 
-                len(text_c), len(set(V["all_classes"])), condprob[t][c])
+            # print "P({} | {}) = ({} + 1) / ({} + {}) = {}".format(t, c, T_ct, 
+            #     len(text_c), len(set(V["all_classes"])), condprob[t][c])
 
     return V, prior, condprob
 
 def extract_tokens(V, d):
-    return [token for token in d.split() if token in V]
+    return [token for token in d if token in V["all_classes"]]
 
 def apply_multinomial(C, V, prior, condprob, d):
     W = extract_tokens(V, d)
@@ -50,13 +50,21 @@ def apply_multinomial(C, V, prior, condprob, d):
             score[c] += math.log(condprob[t][c])
 
     assigned_class = max(score, key=score.get)
-    print "\nDocument d '{}' gives class = {}".format(d, assigned_class)
+    print score
+    return assigned_class
+    # print "\nDocument d '{}' gives class = {}".format(d, assigned_class)
 
 if __name__ == '__main__':
     D = pd.read_csv('test.csv', sep='-', encoding='utf-8', index_col=0, 
         names=['docID', 'titel','ministerie']) 
 
-    cc = D.ministerie.value_counts(normalize=True).head(20)
+    cc = D.ministerie.value_counts(normalize=True)
     C = dict(zip(cc.index.tolist(), cc.tolist()))
-    V, prior, condprob = train_multinomial(C, D)
-    apply_multinomial(C, V, prior, condprob, "Chinese Chinese Chinese Tokyo Japan")
+    train = D.sample(frac=0.6)
+    test = D.drop(train.index)
+    V, prior, condprob = train_multinomial(C, train)
+    print prior
+    for i in range(len(test.titel)):
+        text = "\n".join(list(test.titel)[i].split())
+        predicted_class = apply_multinomial(C, V, prior, condprob, nltk.word_tokenize(text))
+        print "{} | {}".format(list(test.ministerie)[i], predicted_class)

@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+from sklearn.cross_validation import train_test_split
 from collections import Counter, defaultdict
 import nltk
 import math
@@ -10,7 +12,7 @@ def extract_vocabulary(C, D):
     for c in C:
         print c
         D_temporary = D[D.ministerie == c]
-        text = "\n".join((list(D_temporary.titel) + list(D_temporary.vraag) + list(D_temporary.antwoord)))
+        text = "\n".join(list(D_temporary.titel))
         V[c] = nltk.word_tokenize(text)
         V["all_classes"] += V[c]
     
@@ -38,17 +40,19 @@ def train_multinomial(C, D):
     return V, prior, condprob
 
 def extract_tokens(V, d):
-    return [token for token in d.split() if token in V]
+    return [token for token in d if token in V["all_classes"]]
 
 def apply_multinomial(C, V, prior, condprob, d):
     W = extract_tokens(V, d)
+    print W
     score = defaultdict(float)
     for c in C:
         score[c] = math.log(prior[c])
         for t in W:
             score[c] += math.log(condprob[t][c])
 
-    print score
+    assigned_class = max(score, key=score.get)
+    return assigned_class
 
 if __name__ == '__main__':
     # Change to KVR1000.csv.gz if this becomes too slow for you
@@ -65,11 +69,17 @@ if __name__ == '__main__':
     C_filtered = dict(zip(cc_filtered.index.tolist(), 
         D_filtered.ministerie.value_counts(normalize=True).tolist()))
 
-    print len(C_filtered)
-    print C_filtered
+    # Split into training and testing set
+    train = D_filtered.head(100).sample(frac=0.8)
+    test = D_filtered.head(100).drop(train.index)
 
-    V, prior, condprob = train_multinomial(C_filtered, D_filtered.head(100))
-
+    V, prior, condprob = train_multinomial(C_filtered, train)
+    print "\nprior: {}".format(prior)
+    
+    for i in range(len(test.titel)):
+        text = "\n".join(list(test.titel)[i].split())
+        predicted_class = apply_multinomial(C_filtered, V, prior, condprob, nltk.word_tokenize(text))
+        print "\n{}\n{}".format(list(test.ministerie)[i], predicted_class)
     # print "V: {}".format(json.dumps(V))
     # print "\nprior: {}".format(prior)
     # print "\ncondprod: {}".format(condprob)
