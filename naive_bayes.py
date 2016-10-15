@@ -2,16 +2,19 @@ import pandas as pd
 from collections import Counter, defaultdict
 import nltk
 import math
+import json
 
-def extract_vocabulary(D):
-    all_terms = "\n".join(list(D.titel)) # + list(D.vraag) + list(D.antwoord)
-    return Counter(nltk.word_tokenize(all_terms))
-
-def text_in_class(D, c):
-    print "Getting text from documents in class {}...".format(c)
-    D_filtered = D[D.ministerie == c]
-    all_terms = "\n".join(list(D_filtered.titel) + list(D_filtered.vraag) + list(D_filtered.antwoord))
-    return nltk.word_tokenize(all_terms) 
+def extract_vocabulary(C, D):
+    V = defaultdict(list)
+    print "Extracting vocabulary:"
+    for c in C:
+        print c
+        D_temporary = D[D.ministerie == c]
+        text = "\n".join((list(D_temporary.titel) + list(D_temporary.vraag) + list(D_temporary.antwoord)))
+        V[c] = nltk.word_tokenize(text)
+        V["all_classes"] += V[c]
+    
+    return V
 
 def count_tokens(text_c, t):
     return text_c.count(t)
@@ -19,16 +22,18 @@ def count_tokens(text_c, t):
 def train_multinomial(C, D):
     condprob = defaultdict(lambda: defaultdict(float))
     prior = defaultdict(float)
-    V = extract_vocabulary(D)
-    print V
+    V = extract_vocabulary(C, D)
+    B = len(set(V["all_classes"]))
+    print "\nTraining (multinomial):"
     for c in C:
-        print "\n" + c
+        print c
         prior[c] = C[c]
-        text_c = text_in_class(D, c)
-        for t in V:
+        text_c = V[c]
+        A = len(text_c)
+        for t in set(V["all_classes"]):
+            # BOTTLENECK
             T_ct = count_tokens(text_c, t)
-            condprob[t][c] = float((T_ct + 1)) / (len(text_c) + len(V))
-            print "P({} | {}) = ({} + 1) / ({} + {}) = {}".format(t, c, T_ct, len(text_c), len(V), condprob[t][c])
+            condprob[t][c] = float((T_ct + 1)) / (A + B)
 
     return V, prior, condprob
 
@@ -56,9 +61,16 @@ if __name__ == '__main__':
 
     # Filter out rows with unwanted classes
     D_filtered = D[D.ministerie.isin(C.keys())]
-    cc_filtered = D_filtered.ministerie.value_counts(normalize=True).head(10)
+    cc_filtered = D_filtered.ministerie.value_counts(normalize=True)
     C_filtered = dict(zip(cc_filtered.index.tolist(), 
-        D_filtered.ministerie.value_counts(normalize=True).head(10).tolist()))
+        D_filtered.ministerie.value_counts(normalize=True).tolist()))
 
-    V, prior, condprob = train_multinomial(C_filtered, D_filtered)
-    apply_multinomial(C_filtered, V, prior, condprob, "de van")
+    print len(C_filtered)
+    print C_filtered
+
+    V, prior, condprob = train_multinomial(C_filtered, D_filtered.head(100))
+
+    # print "V: {}".format(json.dumps(V))
+    # print "\nprior: {}".format(prior)
+    # print "\ncondprod: {}".format(condprob)
+    # apply_multinomial(C_filtered, V, prior, condprob, "de van")

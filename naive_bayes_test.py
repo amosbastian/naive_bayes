@@ -3,9 +3,15 @@ from collections import Counter, defaultdict
 import nltk
 import math
 
-def extract_vocabulary(D):
-    all_terms = "\n".join(list(D.titel)) # + list(D.vraag) + list(D.antwoord)
-    return Counter(nltk.word_tokenize(all_terms))
+def extract_vocabulary(C, D):
+    V = defaultdict(list)
+    for c in C:
+        D_temporary = D[D.ministerie == c]
+        text = "\n".join(list(D_temporary.titel))
+        V[c] = nltk.word_tokenize(text)
+        V["all_classes"] += V[c]
+    
+    return V
 
 def text_in_class(D, c):
     D_filtered = D[D.ministerie == c]
@@ -18,17 +24,17 @@ def count_tokens(text_c, t):
 def train_multinomial(C, D):
     condprob = defaultdict(lambda: defaultdict(float))
     prior = defaultdict(float)
-    V = extract_vocabulary(D)
+    V = extract_vocabulary(C, D)
     print V
     for c in C:
         print "\n" + c
         prior[c] = C[c]
-        text_c = text_in_class(D, c)
-        for t in V:
+        text_c = V[c]
+        for t in set(V["all_classes"]):
             T_ct = count_tokens(text_c, t)
-            condprob[t][c] = float((T_ct + 1)) / (len(text_c) + len(V))
+            condprob[t][c] = float((T_ct + 1)) / (len(text_c) + len(set(V["all_classes"])))
             print "P({} | {}) = ({} + 1) / ({} + {}) = {}".format(t, c, T_ct, 
-                len(text_c), len(V), condprob[t][c])
+                len(text_c), len(set(V["all_classes"])), condprob[t][c])
 
     return V, prior, condprob
 
@@ -44,7 +50,7 @@ def apply_multinomial(C, V, prior, condprob, d):
             score[c] += math.log(condprob[t][c])
 
     assigned_class = max(score, key=score.get)
-    print "\nc = {}".format(assigned_class)
+    print "\nDocument d '{}' gives class = {}".format(d, assigned_class)
 
 if __name__ == '__main__':
     D = pd.read_csv('test.csv', sep='-', encoding='utf-8', index_col=0, 
