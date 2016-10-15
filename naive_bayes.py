@@ -33,7 +33,7 @@ def train_multinomial(C, D):
         terms_class = len(text_c)
         for t in set(V["all_classes"]):
             # Get number of occurrences of t in training documents from class c
-            # and calculate the condition probability
+            # and calculate the conditional probability
             T_ct = text_c.count(t)
             condprob[t][c] = float((T_ct + 1)) / (terms_class + B)
 
@@ -88,4 +88,4 @@ if __name__ == '__main__':
         else:
             wrong += 1
 
-    print "Accuracy: {}%".format(100 * float(correct) / (correct + wrong))
+    print "\nAccuracy: {}%".format(100 * float(correct) / (correct + wrong))
