@@ -2,8 +2,7 @@ from collections import Counter, defaultdict
 from nltk.corpus import stopwords
 import pandas as pd
 import numpy as np
-import nltk, math, json
-nltk.download("stopwords")
+import nltk, math, json, pickle
 
 def extract_vocabulary(C, D):
     V = defaultdict(list)
@@ -12,16 +11,19 @@ def extract_vocabulary(C, D):
         print c
         # Get all text (titles) from documents with class c
         D_temporary = D[D.ministerie == c]
-        text = "\n".join(list(D_temporary.titel)) # + list(D_temporary.vraag) etc?
+        text = "\n".join(list(D_temporary.titel)) # + list(D_temporary.titel) etc?
         # Save all tokens to our dictionary
         V[c] = nltk.word_tokenize(text)
         V["all_classes"] += V[c]
     
     return V
 
+def dd_float():
+    return defaultdict(float)
+
 def train_multinomial(C, D):
     # Initialise some variables
-    condprob = defaultdict(lambda: defaultdict(float))
+    condprob = defaultdict(dd_float)
     prior    = defaultdict(float)
     V        = extract_vocabulary(C, D)
     B        = len(set(V["all_classes"]))
@@ -56,46 +58,50 @@ def apply_multinomial(C, V, prior, condprob, d):
     predicted_class = max(score, key=score.get)
     return predicted_class
 
-def top_10(C, V):
-    dutch_stop = stopwords.words("dutch")
-    for c in C:
-        print "\n" + c[1:]
-        counter_c = Counter(w for w in V[c] if w not in dutch_stop)
-        print counter_c.most_common(10)
-
 if __name__ == '__main__':
     # Change to KVR1000.csv.gz if this becomes too slow for you
     D = pd.read_csv('KVR.csv', sep='\t', encoding='utf-8', index_col=0, 
         names=['jaar', 'partij','titel','vraag','antwoord','ministerie']) 
 
-    # Get value counts and create a dictionary of the classes we want
-    cc = D.ministerie.value_counts(normalize=True).head(20)
-    C  = dict(zip(cc.index.tolist()[1::2], cc.tolist()[1::2]))
+    classes = [u' Justitie (JUS)', 
+               u' Volksgezondheid, Welzijn en Sport (VWS)', 
+               u' Buitenlandse Zaken (BUZA)', 
+               u' Verkeer en Waterstaat (VW)',
+               u' Sociale Zaken en Werkgelegenheid (SZW)', 
+               u' Onderwijs, Cultuur en Wetenschappen (OCW)',
+               u' Volkshuisvesting, Ruimtelijke Ordening en Milieubeheer (VROM)',
+               u' Financi\xebn (FIN)',
+               u' Economische Zaken (EZ)',
+               u' Defensie (DEF)']
 
     # Filter out rows with unwanted classes
-    D_filtered  = D[D.ministerie.isin(C.keys())]
+    D_filtered  = D[D.ministerie.isin(classes)]
     cc_filtered = D_filtered.ministerie.value_counts(normalize=True)
     C_filtered  = dict(zip(cc_filtered.index.tolist(), 
         D_filtered.ministerie.value_counts(normalize=True).tolist()))
 
     # Split into training and testing set
-    train = D_filtered.sample(frac=0.8)
+    train = D_filtered.sample(frac=0.8, random_state=50)
     test  = D_filtered.drop(train.index)
 
     V, prior, condprob = train_multinomial(C_filtered, train)
-    correct, wrong = 0, 0
 
-    top_10(C, V)
+    with open("prior_titel.pickle", "wb") as handle:
+        pickle.dump(prior, handle)
 
-    # For each document in the test set, get the text in its title and predict
-    # its class 
-    for i in range(len(test.titel)):
-        text = "\n".join(list(test.titel)[i].split())
-        predicted_class = apply_multinomial(C_filtered, V, prior, 
-            condprob, nltk.word_tokenize(text))
-        if predicted_class == list(test.ministerie)[i]:
-            correct += 1
-        else:
-            wrong += 1
+    # correct, wrong = 0, 0
 
-    print "\nAccuracy: {}%".format(100 * float(correct) / (correct + wrong))
+    # top_10(C, V)
+
+    # # For each document in the test set, get the text in its title and predict
+    # # its class 
+    # for i in range(len(test.titel)):
+    #     text = "\n".join(list(test.titel)[i].split())
+    #     predicted_class = apply_multinomial(C_filtered, V, prior, 
+    #         condprob, nltk.word_tokenize(text))
+    #     if predicted_class == list(test.ministerie)[i]:
+    #         correct += 1
+    #     else:
+    #         wrong += 1
+
+    # print "\nAccuracy: {}%".format(100 * float(correct) / (correct + wrong))
