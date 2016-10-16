@@ -62,6 +62,10 @@ def apply_multinomial(C, V, prior, condprob, d):
     # print "\nDocument d '{}' gives class = {}".format(d, assigned_class)
 
 def get_mi(t, c, D):
+    # counting of term occurances is represented as a 2d array, The first index
+    # is in {0, 1} and represents whether a term is present (index 1) or not 
+    # (index 0). The second index is in {0, 1} and represents whether a
+    # document is in class c.
     count = [[0, 0], [0, 0]]
     ndocs = len(D.titel)
     for doc in D[D.ministerie == c].titel:
@@ -71,21 +75,22 @@ def get_mi(t, c, D):
         else:
             count[0][1] += 1 # num of documents with class c without t
     
-    for doc in D[D.ministerie == c].titel:
+    for doc in D[D.ministerie != c].titel:
         words = doc.split(' ')
         if t in words:
             count[1][0] += 1 # num of documents not with class c containing t
         else:
             count[0][0] += 1 # num of documents not with class c without t
     
+    # with each of the counts, we calculate the probabilities
     P = [[0, 0], [0, 0]]
     P[1][1] = float(count[1][1]) / ndocs
     P[0][1] = float(count[0][1]) / ndocs
     P[1][0] = float(count[1][0]) / ndocs
     P[0][0] = float(count[0][0]) / ndocs
     
-    P_c = [0, 0]
-    P_t = [0, 0]
+    P_c = [0, 0] # probability that a document is in c (P_c[1]) or not (P_c[0])
+    P_t = [0, 0] # probability that a term is in a document (P_t[1]) or not (P_t[0])
     
     P_c[1] = float(len(D[D.ministerie == c])) / ndocs
     P_c[0] = float(len(D[D.ministerie != c])) / ndocs
@@ -94,12 +99,21 @@ def get_mi(t, c, D):
     
     I_u_c = 0.0
     
+    #for e_t in range(2):
+    #    for e_c in range(2):
+    #        print P[e_t][e_c], "log2( (", P[e_t][e_c], ") / (", P_t[e_t],"*",P_c[e_c], ") )"
+    
     for e_t in range(2):
         for e_c in range(2):
-            if (P_t[e_t] * P_c[e_c]) != 0:
+            # the number in the log should not be 0, nor should any component 
+            # of the division be zero
+            if (((P_t[e_t] * P_c[e_c]) != P[e_t][e_c]) and 
+            (P[e_t][e_c] != 0 and (P_t[e_t] * P_c[e_c]) != 0)):
                 I_u_c += P[e_t][e_c] * math.log((P[e_t][e_c]) / (P_t[e_t] * P_c[e_c]), 2)
     
+    # return A(t, c)
     return I_u_c
+    
 if __name__ == '__main__':
     D = pd.read_csv('test.csv', sep='-', encoding='utf-8', index_col=0, 
         names=['docID', 'titel','ministerie']) 
@@ -121,7 +135,7 @@ if __name__ == '__main__':
     
     V, prior, condprob = train_multinomial(C, train)
     
-    mi = get_mi(V["all_classes"][0], u'China', D)
+    mi = get_mi(u'Beijing', u'China', D)
     print mi
     
     for i in range(len(test.titel)):
