@@ -42,12 +42,14 @@ def train_multinomial(C, D):
 
     return V, prior, condprob
 
+def extract_tokens(V, d):
+    return [token for token in d if token in V["all_classes"]]
 
 def apply_multinomial(C, V, prior, condprob, d):
+    W = extract_tokens(V, d)
     score = defaultdict(float)
     for c in C:
         score[c] = math.log(prior[c])
-        W = list(V[c])
         for t in W:
             score[c] += math.log(condprob[t][c])
 
@@ -114,6 +116,7 @@ def top_k_terms(V, C, D, k):
     mi = defaultdict(dd_float)
     
     for c in C:
+        #print c
         for t in V[c]:
             mi[c][t] = get_mi(t, c, D)
 
@@ -133,16 +136,25 @@ if __name__ == '__main__':
     C = dict(zip(cc.index.tolist(), cc.tolist()))
     
     #Take a 3/5 fraction as training set
-    train = D.sample(frac=0.6)
+    train = D.sample(frac=0.8)
     
     #Use the rest as set to predict class
     test = D.drop(train.index)
     
     V, prior, condprob = train_multinomial(C, train)
     
-    top_kek = top_k_terms(V, C, train, 3)
+    top_kek = top_k_terms(V, C, train, 5)
+
+    topkV = defaultdict(list)
+    print top_kek
+    for cls in top_kek:
+        topkV[cls].extend(top_kek[cls])
+        topkV["all_classes"].extend(top_kek[cls])
     
+    topkV["all_classes"] = list(set(topkV["all_classes"]))
+    print topkV
+    print
     for i in range(len(test.titel)):
-        text = "\n".join(list(test.titel)[i].split())
-        predicted_class = apply_multinomial(C, top_kek, prior, condprob, nltk.word_tokenize(text))
+        text = "\n".join(list(test.titel)[i].split(' '))
+        predicted_class = apply_multinomial(C, topkV, prior, condprob, nltk.word_tokenize(text))
         print "{} | {}".format(list(test.ministerie)[i], predicted_class)

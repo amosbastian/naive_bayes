@@ -116,7 +116,6 @@ def top_k_terms(V, C, D, k):
     mi = defaultdict(dd_float)
     
     for c in C:
-        print c
         for t in V[c]:
             mi[c][t] = get_mi(t, c, D)
 
@@ -141,26 +140,16 @@ if __name__ == '__main__':
                u' Defensie (DEF)']
 
     # Filter out rows with unwanted classes
-    D_cut       = D[D.ministerie.isin(classes)]
-    D_filtered  = D_cut.sample(frac=0.001, random_state=50)
+    D_filtered  = D[D.ministerie.isin(classes)]
     cc_filtered = D_filtered.ministerie.value_counts(normalize=True)
     C_filtered  = dict(zip(cc_filtered.index.tolist(), 
         D_filtered.ministerie.value_counts(normalize=True).tolist()))
 
     # Split into training and testing set
-    train = D_filtered.sample(frac=0.8, random_state=50)
-    test  = D_filtered.drop(train.index)
+    train = D_filtered.head(100).sample(frac=0.8, random_state=50)
+    test  = D_filtered.head(100).drop(train.index)
 
     V, prior, condprob = train_multinomial(C_filtered, train)
-
-    with open("vocabulary_titel.pickle", "wb") as handle:
-        pickle.dump(V, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    with open("prior_titel.pickle", "wb") as handle:
-        pickle.dump(prior, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    with open("condprob_titel.pickle", "wb") as handle:
-        pickle.dump(condprob, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     print json.dumps(top_k_terms(V, C_filtered, train, 10))
 
