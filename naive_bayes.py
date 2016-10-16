@@ -11,7 +11,7 @@ def extract_vocabulary(C, D):
         print c
         # Get all text (titles) from documents with class c
         D_temporary = D[D.ministerie == c]
-        text = "\n".join(list(D_temporary.vraag)) # + list(D_temporary.vraag) etc?
+        text = "\n".join(list(D_temporary.titel)) # + list(D_temporary.titel) etc?
         # Save all tokens to our dictionary
         V[c] = nltk.word_tokenize(text)
         V["all_classes"] += V[c]
@@ -64,15 +64,15 @@ def get_mi(t, c, D):
     # (index 0). The second index is in {0, 1} and represents whether a
     # document is in class c.
     count = [[0, 0], [0, 0]]
-    ndocs = len(D.vraag)
-    for doc in D[D.ministerie == c].vraag:
+    ndocs = len(D.titel)
+    for doc in D[D.ministerie == c].titel:
         words = doc.split(' ')
         if t in words:
             count[1][1] += 1 # num of documents with class c containing t
         else:
             count[0][1] += 1 # num of documents with class c without t
     
-    for doc in D[D.ministerie != c].vraag:
+    for doc in D[D.ministerie != c].titel:
         words = doc.split(' ')
         if t in words:
             count[1][0] += 1 # num of documents not with class c containing t
@@ -142,7 +142,7 @@ if __name__ == '__main__':
 
     # Filter out rows with unwanted classes
     D_cut       = D[D.ministerie.isin(classes)]
-    D_filtered  = D_cut.sample(frac=0.01, random_state=50)
+    D_filtered  = D_cut.sample(frac=0.001, random_state=50)
     cc_filtered = D_filtered.ministerie.value_counts(normalize=True)
     C_filtered  = dict(zip(cc_filtered.index.tolist(), 
         D_filtered.ministerie.value_counts(normalize=True).tolist()))
@@ -173,8 +173,8 @@ if __name__ == '__main__':
 
     # # For each document in the test set, get the text in its title and predict
     # # its class 
-    # for i in range(len(test.vraag)):
-    #     text = "\n".join(list(test.vraag)[i].split())
+    # for i in range(len(test.titel)):
+    #     text = "\n".join(list(test.titel)[i].split())
     #     predicted_class = apply_multinomial(C_filtered, V, prior, 
     #         condprob, nltk.word_tokenize(text))
     #     if predicted_class == list(test.ministerie)[i]:

@@ -42,23 +42,17 @@ def train_multinomial(C, D):
 
     return V, prior, condprob
 
-def extract_tokens(V, d):
-    return [token for token in d if token in V["all_classes"]]
-
-def mutual_information(documents, ):
-    pass
-
 def apply_multinomial(C, V, prior, condprob, d):
-    W = extract_tokens(V, d)
     score = defaultdict(float)
-    
     for c in C:
+        print c
         score[c] = math.log(prior[c])
+        W = list(V[c])
         for t in W:
             score[c] += math.log(condprob[t][c])
 
     assigned_class = max(score, key=score.get)
-    print score
+    #print score
     return assigned_class
     # print "\nDocument d '{}' gives class = {}".format(d, assigned_class)
 
@@ -70,13 +64,13 @@ def get_mi(t, c, D):
     count = [[0, 0], [0, 0]]
     ndocs = len(D.titel)
     for doc in D[D.ministerie == c].titel:
-        if t in doc:
+        if t in doc.split(' '):
             count[1][1] += 1 # num of documents with class c containing t
         else:
             count[0][1] += 1 # num of documents with class c without t
     
     for doc in D[D.ministerie != c].titel:
-        if t in doc:
+        if t in doc.split(' '):
             count[1][0] += 1 # num of documents not with class c containing t
         else:
             count[0][0] += 1 # num of documents not with class c without t
@@ -123,8 +117,7 @@ def top_k_terms(V, C, D, k):
         for t in V[c]:
             mi[c][t] = get_mi(t, c, D)
 
-        # Hier alleen top k terms in dictionary laten per class
-        print "top k termen: {}".format(dict(Counter(mi[c]).most_common(k)))
+        mi[c] = dict(Counter(mi[c]).most_common(k))
     
     return mi
     
@@ -148,11 +141,8 @@ if __name__ == '__main__':
     V, prior, condprob = train_multinomial(C, train)
     
     top_kek = top_k_terms(V, C, train, 3)
-    for thing in top_kek:
-        print " - ", dict(Counter(top_kek[thing]).most_common(5))
     
-    
-    # for i in range(len(test.titel)):
-    #     text = "\n".join(list(test.titel)[i].split())
-    #     predicted_class = apply_multinomial(C, V, prior, condprob, nltk.word_tokenize(text))
-    #     #print "{} | {}".format(list(test.ministerie)[i], predicted_class)
+    for i in range(len(test.titel)):
+        text = "\n".join(list(test.titel)[i].split())
+        predicted_class = apply_multinomial(C, top_kek, prior, condprob, nltk.word_tokenize(text))
+        print "{} | {}".format(list(test.ministerie)[i], predicted_class)
