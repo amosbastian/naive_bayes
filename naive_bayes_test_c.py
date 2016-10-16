@@ -2,6 +2,7 @@ import pandas as pd
 from collections import Counter, defaultdict
 import nltk
 import math
+import random
 
 def extract_vocabulary(C, D):
     V = defaultdict(list)
@@ -99,7 +100,7 @@ def get_mi(t, c, D):
     
     I_u_c = 0.0
     
-    #for e_t in range(2):
+    # for e_t in range(2):
     #    for e_c in range(2):
     #        print P[e_t][e_c], "log2( (", P[e_t][e_c], ") / (", P_t[e_t],"*",P_c[e_c], ") )"
     
@@ -114,26 +115,26 @@ def get_mi(t, c, D):
     # return A(t, c)
     return I_u_c
     
-    
+def dd_float():
+    return defaultdict(float)
 
-def get_top10terms(V, c, D):
-    mi_dict = defaultdict(lambda: defaultdict(float))
+def top_k_terms(V, C, D, k):
+    mi = defaultdict(dd_float)
     
-    for t in V[c]:
-        mi_dict[t] = get_mi(t, c, D)
+    for c in C:
+        for t in V[c]:
+            mi[c][t] = get_mi(t, c, D)
 
-    #print mi_dict
-    mi_sorted = sorted(mi_dict.items(), key=lambda x:x[1])
-    print mi_sorted, "\n"
-    return mi_sorted
+        # Hier alleen top k terms in dictionary laten per class
+        print "top k termen: {}".format(dict(Counter(mi[c]).most_common(k)))
+    
+    return mi
     
     
 if __name__ == '__main__':
     D = pd.read_csv('test.csv', sep='-', encoding='utf-8', index_col=0, 
         names=['docID', 'titel','ministerie']) 
     
-    
-        
     #Get fractions of documents belonging to the classes
     cc = D.ministerie.value_counts(normalize=True)
     
@@ -146,14 +147,10 @@ if __name__ == '__main__':
     #Use the rest as set to predict class
     test = D.drop(train.index)
     
-    
     V, prior, condprob = train_multinomial(C, train)
+    print top_k_terms(V, C, train, 10)
     
-    mi = get_mi(u'Beijing', u'China', D)
-    
-    get_top10terms(V, u'China', train)
-    
-    for i in range(len(test.titel)):
-        text = "\n".join(list(test.titel)[i].split())
-        predicted_class = apply_multinomial(C, V, prior, condprob, nltk.word_tokenize(text))
-        #print "{} | {}".format(list(test.ministerie)[i], predicted_class)
+    # for i in range(len(test.titel)):
+    #     text = "\n".join(list(test.titel)[i].split())
+    #     predicted_class = apply_multinomial(C, V, prior, condprob, nltk.word_tokenize(text))
+    #     #print "{} | {}".format(list(test.ministerie)[i], predicted_class)
