@@ -47,7 +47,7 @@ def apply_multinomial(C, V, prior, condprob, d):
     # Get all tokens that are both in d and the vocabulary
     W     = [token for token in d if token in V["all_classes"]]
     score = defaultdict(float)
-    print W
+    #print W
     for c in C:
         # Score is initialised as the prior score
         score[c] = math.log(prior[c])
@@ -119,6 +119,39 @@ def top_k_terms(V, C, D, k):
     
     return mi
 
+
+def get_F1(c, test, C, topkV, prior, condprob):
+    test_filtered = test[test.ministerie == c]
+    
+    correct = 0
+    relevant_retrieved = 0
+    relevant_items = len(test_filtered)
+    items_retrieved = len(test.titel)
+    for i in range(len(test.titel)):
+        text = "\n".join(list(test.titel)[i].split(' '))
+        pred_c = apply_multinomial(C, topkV, prior, condprob, nltk.word_tokenize(text))
+        real_c = list(test.ministerie)[i]
+        #print real_c, "\t|", pred_c
+        
+        if real_c == pred_c == c:
+            relevant_retrieved += 1
+            
+    print "relevant retrieved", relevant_retrieved
+    print "relevant_items", relevant_items
+    print "items_retrieved", items_retrieved
+    
+    Prec = 0
+    Rec = 0
+    if items_retrieved != 0:
+        Prec = float(relevant_retrieved) / float(items_retrieved) 
+    if items_retrieved != 0:
+        Rec = float(relevant_retrieved) / float(relevant_items) 
+    a = 0.5
+    F1 = 1 / ((a / Prec) + ((1 - a) / Rec))
+    
+    return F1
+
+
 if __name__ == '__main__':
     # Change to KVR1000.csv.gz if this becomes too slow for you
     D = pd.read_csv('KVR.csv', sep='\t', encoding='utf-8', index_col=0, 
@@ -150,6 +183,20 @@ if __name__ == '__main__':
     # print json.dumps(top_k_terms(V, C_filtered, train, 10))
     correct, wrong = 0, 0
 
+
+    top_kek = top_k_terms(V, C_filtered, train, 20)
+
+    topkV = defaultdict(list)
+    
+    for cls in top_kek:
+        topkV[cls].extend(top_kek[cls])
+        topkV["all_classes"].extend(top_kek[cls])
+    
+    topkV["all_classes"] = list(set(topkV["all_classes"]))
+        
+    print get_F1(u' Justitie (JUS)', test, C_filtered, topkV, prior, condprob)
+    
+    
     # For each document in the test set, get the text in its title and predict
     # its class 
     for i in range(len(test.titel)):
