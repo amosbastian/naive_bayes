@@ -114,6 +114,20 @@ def get_mi(t, c, D):
     # return A(t, c)
     return I_u_c
     
+    
+
+def get_top10terms(V, c, D):
+    mi_dict = defaultdict(lambda: defaultdict(float))
+    
+    for t in V[c]:
+        mi_dict[t] = get_mi(t, c, D)
+
+    print mi_dict
+    mi_sorted = sorted(mi_dict.items(), key=lambda x:x[1])
+    print mi_sorted, "\n"
+    return mi_sorted
+    
+    
 if __name__ == '__main__':
     D = pd.read_csv('test.csv', sep='-', encoding='utf-8', index_col=0, 
         names=['docID', 'titel','ministerie']) 
@@ -136,9 +150,10 @@ if __name__ == '__main__':
     V, prior, condprob = train_multinomial(C, train)
     
     mi = get_mi(u'Beijing', u'China', D)
-    print mi
+    
+    get_top10terms(V, u'China', train)
     
     for i in range(len(test.titel)):
         text = "\n".join(list(test.titel)[i].split())
         predicted_class = apply_multinomial(C, V, prior, condprob, nltk.word_tokenize(text))
-        print "{} | {}".format(list(test.ministerie)[i], predicted_class)
+        #print "{} | {}".format(list(test.ministerie)[i], predicted_class)
