@@ -124,7 +124,40 @@ def top_k_terms(V, C, D, k):
     
     return mi
     
+
+def get_F1(c, test, C, topkV, prior, condprob):
+    correct = 0
+    relevant_retrieved = 0
+    relevant_items = 0
+    items_retrieved = len(test.titel)
+    for i in range(len(test.titel)):
+        text = "\n".join(list(test.titel)[i].split(' '))
+        pred_c = apply_multinomial(C, topkV, prior, condprob, nltk.word_tokenize(text))
+        real_c = list(test.ministerie)[i]
+        print real_c, "\t|", pred_c
+        
+        if real_c == pred_c:
+            correct += 1
+        if pred_c == c:
+            relevant_retrieved += 1
+        if real_c == c:
+            relevant_items += 1
+            
+    print "relevant retrieved", relevant_retrieved
+    print "relevant_items", relevant_items
+    print "items_retrieved", items_retrieved
+    print correct, "/",  len(test.titel)
     
+    Prec = 0
+    Rec = 0
+    if items_retrieved != 0:
+        Prec = float(relevant_retrieved) / float(items_retrieved) 
+    if items_retrieved != 0:
+        Rec = float(relevant_retrieved) / float(relevant_items) 
+    a = float(correct) / float(items_retrieved)
+    F1 = 1 / ((a / Prec) + ((1 - a) / Rec))
+    
+    return F1
 if __name__ == '__main__':
     D = pd.read_csv('test2.csv', sep='-', encoding='utf-8', index_col=0, 
         names=['docID', 'titel','ministerie']) 
@@ -143,18 +176,28 @@ if __name__ == '__main__':
     
     V, prior, condprob = train_multinomial(C, train)
     
-    top_kek = top_k_terms(V, C, train, 5)
+    top_kek = top_k_terms(V, C, train, 3)
 
     topkV = defaultdict(list)
-    print top_kek
+    
     for cls in top_kek:
         topkV[cls].extend(top_kek[cls])
         topkV["all_classes"].extend(top_kek[cls])
     
     topkV["all_classes"] = list(set(topkV["all_classes"]))
-    print topkV
-    print
-    for i in range(len(test.titel)):
-        text = "\n".join(list(test.titel)[i].split(' '))
-        predicted_class = apply_multinomial(C, topkV, prior, condprob, nltk.word_tokenize(text))
-        print "{} | {}".format(list(test.ministerie)[i], predicted_class)
+        
+    print get_F1(u'China', test, C, topkV, prior, condprob)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

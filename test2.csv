@@ -16,3 +16,22 @@
 16-Japan        Tokyo       Japan       -Not China
 17-Beijing      Macao       Macao       -China
 18-Beijing      Shanghai    Macao       -China
+
+19-Chinese       Beijing     Chinese     -China
+20-Chinese       Chinese     Shanghai    -China
+21-Chinese       Macao                   -China
+22-Tokyo         Japan       Chinese     -Not China
+23-Seoul         Korea       Chinese     -Not China
+24-Manila        Philippines Chinese     -Not China
+25-Seoul         Tokyo       Manila      -Not China
+26-Beijing       Shanghai    Macao       -China
+27-Philippines   Korea       Japan       -Not China
+28-Chinese      Sea         Philippines -Not China
+29-Chinese      Sea         Korea       -Not China
+30-Chinese      Sea         Taiwan      -Not China
+31-Taipei       Taiwan      Chinese     -Not China
+32-Beijing      Chinese     Macao       -China
+33-Beijing      Chinese     Shanghai    -China
+34-Japan        Tokyo       Japan       -Not China
+35-Beijing      Macao       Macao       -China
+36-Beijing      Shanghai    Macao       -China
