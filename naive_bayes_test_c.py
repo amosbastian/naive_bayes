@@ -122,7 +122,7 @@ def get_top10terms(V, c, D):
     for t in V[c]:
         mi_dict[t] = get_mi(t, c, D)
 
-    print mi_dict
+    #print mi_dict
     mi_sorted = sorted(mi_dict.items(), key=lambda x:x[1])
     print mi_sorted, "\n"
     return mi_sorted
