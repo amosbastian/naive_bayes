@@ -31,9 +31,9 @@ def train_multinomial(C, D):
         # print "\n" + c
         prior[c] = C[c]
         text_c = V[c]
-        print c, text_c
-        print set(V["all_classes"])
-        print
+        #print c, text_c
+        #print set(V["all_classes"])
+        #print
         for t in set(V["all_classes"]):
             T_ct = count_tokens(text_c, t)
             condprob[t][c] = float((T_ct + 1)) / (len(text_c) + len(set(V["all_classes"])))
@@ -70,15 +70,13 @@ def get_mi(t, c, D):
     count = [[0, 0], [0, 0]]
     ndocs = len(D.titel)
     for doc in D[D.ministerie == c].titel:
-        words = doc.split(' ')
-        if t in words:
+        if t in doc:
             count[1][1] += 1 # num of documents with class c containing t
         else:
             count[0][1] += 1 # num of documents with class c without t
     
     for doc in D[D.ministerie != c].titel:
-        words = doc.split(' ')
-        if t in words:
+        if t in doc:
             count[1][0] += 1 # num of documents not with class c containing t
         else:
             count[0][0] += 1 # num of documents not with class c without t
@@ -132,7 +130,7 @@ def top_k_terms(V, C, D, k):
     
     
 if __name__ == '__main__':
-    D = pd.read_csv('test.csv', sep='-', encoding='utf-8', index_col=0, 
+    D = pd.read_csv('test2.csv', sep='-', encoding='utf-8', index_col=0, 
         names=['docID', 'titel','ministerie']) 
     
     #Get fractions of documents belonging to the classes
@@ -148,7 +146,11 @@ if __name__ == '__main__':
     test = D.drop(train.index)
     
     V, prior, condprob = train_multinomial(C, train)
-    print top_k_terms(V, C, train, 10)
+    
+    top_kek = top_k_terms(V, C, train, 3)
+    for thing in top_kek:
+        print " - ", dict(Counter(top_kek[thing]).most_common(5))
+    
     
     # for i in range(len(test.titel)):
     #     text = "\n".join(list(test.titel)[i].split())
