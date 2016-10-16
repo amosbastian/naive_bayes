@@ -45,9 +45,6 @@ def train_multinomial(C, D):
 def extract_tokens(V, d):
     return [token for token in d if token in V["all_classes"]]
 
-def mutual_information(documents, ):
-    pass
-
 def apply_multinomial(C, V, prior, condprob, d):
     W = extract_tokens(V, d)
     score = defaultdict(float)
@@ -58,7 +55,7 @@ def apply_multinomial(C, V, prior, condprob, d):
             score[c] += math.log(condprob[t][c])
 
     assigned_class = max(score, key=score.get)
-    print score
+    #print score
     return assigned_class
     # print "\nDocument d '{}' gives class = {}".format(d, assigned_class)
 
@@ -70,13 +67,13 @@ def get_mi(t, c, D):
     count = [[0, 0], [0, 0]]
     ndocs = len(D.titel)
     for doc in D[D.ministerie == c].titel:
-        if t in doc:
+        if t in doc.split(' '):
             count[1][1] += 1 # num of documents with class c containing t
         else:
             count[0][1] += 1 # num of documents with class c without t
     
     for doc in D[D.ministerie != c].titel:
-        if t in doc:
+        if t in doc.split(' '):
             count[1][0] += 1 # num of documents not with class c containing t
         else:
             count[0][0] += 1 # num of documents not with class c without t
@@ -148,11 +145,12 @@ if __name__ == '__main__':
     V, prior, condprob = train_multinomial(C, train)
     
     top_kek = top_k_terms(V, C, train, 3)
-    for thing in top_kek:
-        print " - ", dict(Counter(top_kek[thing]).most_common(5))
+    topkV = defaultdict(list)
     
+    for cls in top_kek:
+        topkV[cls] = dict(Counter(top_kek[cls]).most_common(5))
     
-    # for i in range(len(test.titel)):
-    #     text = "\n".join(list(test.titel)[i].split())
-    #     predicted_class = apply_multinomial(C, V, prior, condprob, nltk.word_tokenize(text))
-    #     #print "{} | {}".format(list(test.ministerie)[i], predicted_class)
+    for i in range(len(test.titel)):
+        text = "\n".join(list(test.titel)[i].split())
+        predicted_class = apply_multinomial(C, topkV, prior, condprob, nltk.word_tokenize(text))
+        print "{} | {}".format(list(test.ministerie)[i], predicted_class)
