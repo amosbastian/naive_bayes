@@ -47,7 +47,7 @@ def apply_multinomial(C, V, prior, condprob, d):
     # Get all tokens that are both in d and the vocabulary
     W     = [token for token in d if token in V["all_classes"]]
     score = defaultdict(float)
-
+    print W
     for c in C:
         # Score is initialised as the prior score
         score[c] = math.log(prior[c])
@@ -96,10 +96,6 @@ def get_mi(t, c, D):
     
     I_u_c = 0.0
     
-    # for e_t in range(2):
-    #    for e_c in range(2):
-    #        print P[e_t][e_c], "log2( (", P[e_t][e_c], ") / (", P_t[e_t],"*",P_c[e_c], ") )"
-    
     for e_t in range(2):
         for e_c in range(2):
             # the number in the log should not be 0, nor should any component 
@@ -114,8 +110,8 @@ def get_mi(t, c, D):
 def top_k_terms(V, C, D, k):
     print "\nGetting top {} terms of each class".format(k)
     mi = defaultdict(dd_float)
-    
     for c in C:
+        print c
         for t in V[c]:
             mi[c][t] = get_mi(t, c, D)
 
@@ -146,29 +142,23 @@ if __name__ == '__main__':
         D_filtered.ministerie.value_counts(normalize=True).tolist()))
 
     # Split into training and testing set
-    train = D_filtered.head(100).sample(frac=0.8, random_state=50)
-    test  = D_filtered.head(100).drop(train.index)
+    train = D_filtered.head(1000).sample(frac=0.8, random_state=50)
+    test  = D_filtered.head(1000).drop(train.index)
 
     V, prior, condprob = train_multinomial(C_filtered, train)
 
-    print json.dumps(top_k_terms(V, C_filtered, train, 10))
+    # print json.dumps(top_k_terms(V, C_filtered, train, 10))
+    correct, wrong = 0, 0
 
-    # with open("prior_titel.pickle", "wb") as handle:
-    #     pickle.dump(prior, handle)
+    # For each document in the test set, get the text in its title and predict
+    # its class 
+    for i in range(len(test.titel)):
+        text = "\n".join(list(test.titel)[i].split())
+        predicted_class = apply_multinomial(C_filtered, V, prior, 
+            condprob, nltk.word_tokenize(text))
+        if predicted_class == list(test.ministerie)[i]:
+            correct += 1
+        else:
+            wrong += 1
 
-    # correct, wrong = 0, 0
-
-    # top_10(C, V)
-
-    # # For each document in the test set, get the text in its title and predict
-    # # its class 
-    # for i in range(len(test.titel)):
-    #     text = "\n".join(list(test.titel)[i].split())
-    #     predicted_class = apply_multinomial(C_filtered, V, prior, 
-    #         condprob, nltk.word_tokenize(text))
-    #     if predicted_class == list(test.ministerie)[i]:
-    #         correct += 1
-    #     else:
-    #         wrong += 1
-
-    # print "\nAccuracy: {}%".format(100 * float(correct) / (correct + wrong))
+    print "\nAccuracy: {}%".format(100 * float(correct) / (correct + wrong))
