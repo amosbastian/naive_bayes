@@ -1,2 +1,2 @@
 # naive_bayes
-Text classification with Naive Bayes
+Text classification with naive Bayes
