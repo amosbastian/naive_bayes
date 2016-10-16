@@ -154,6 +154,7 @@ if __name__ == '__main__':
     
     topkV["all_classes"] = list(set(topkV["all_classes"]))
     print topkV
+    print
     for i in range(len(test.titel)):
         text = "\n".join(list(test.titel)[i].split(' '))
         predicted_class = apply_multinomial(C, topkV, prior, condprob, nltk.word_tokenize(text))
