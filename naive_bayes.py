@@ -11,7 +11,7 @@ def extract_vocabulary(C, D):
         print c
         # Get all text (titles) from documents with class c
         D_temporary = D[D.ministerie == c]
-        text = "\n".join(list(D_temporary.titel)) # + list(D_temporary.titel) etc?
+        text = "\n".join(list(D_temporary.vraag)) # + list(D_temporary.vraag) etc?
         # Save all tokens to our dictionary
         V[c] = nltk.word_tokenize(text)
         V["all_classes"] += V[c]
@@ -58,6 +58,72 @@ def apply_multinomial(C, V, prior, condprob, d):
     predicted_class = max(score, key=score.get)
     return predicted_class
 
+def get_mi(t, c, D):
+    # counting of term occurances is represented as a 2d array, The first index
+    # is in {0, 1} and represents whether a term is present (index 1) or not 
+    # (index 0). The second index is in {0, 1} and represents whether a
+    # document is in class c.
+    count = [[0, 0], [0, 0]]
+    ndocs = len(D.vraag)
+    for doc in D[D.ministerie == c].vraag:
+        words = doc.split(' ')
+        if t in words:
+            count[1][1] += 1 # num of documents with class c containing t
+        else:
+            count[0][1] += 1 # num of documents with class c without t
+    
+    for doc in D[D.ministerie != c].vraag:
+        words = doc.split(' ')
+        if t in words:
+            count[1][0] += 1 # num of documents not with class c containing t
+        else:
+            count[0][0] += 1 # num of documents not with class c without t
+    
+    # with each of the counts, we calculate the probabilities
+    P = [[0, 0], [0, 0]]
+    P[1][1] = float(count[1][1]) / ndocs
+    P[0][1] = float(count[0][1]) / ndocs
+    P[1][0] = float(count[1][0]) / ndocs
+    P[0][0] = float(count[0][0]) / ndocs
+    
+    P_c = [0, 0] # probability that a document is in c (P_c[1]) or not (P_c[0])
+    P_t = [0, 0] # probability that a term is in a document (P_t[1]) or not (P_t[0])
+    
+    P_c[1] = float(len(D[D.ministerie == c])) / ndocs
+    P_c[0] = float(len(D[D.ministerie != c])) / ndocs
+    P_t[1] = float(count[1][1] + count[1][0]) / ndocs
+    P_t[0] = float(count[0][1] + count[0][0]) / ndocs
+    
+    I_u_c = 0.0
+    
+    # for e_t in range(2):
+    #    for e_c in range(2):
+    #        print P[e_t][e_c], "log2( (", P[e_t][e_c], ") / (", P_t[e_t],"*",P_c[e_c], ") )"
+    
+    for e_t in range(2):
+        for e_c in range(2):
+            # the number in the log should not be 0, nor should any component 
+            # of the division be zero
+            if (((P_t[e_t] * P_c[e_c]) != P[e_t][e_c]) and 
+            (P[e_t][e_c] != 0 and (P_t[e_t] * P_c[e_c]) != 0)):
+                I_u_c += P[e_t][e_c] * math.log((P[e_t][e_c]) / (P_t[e_t] * P_c[e_c]), 2)
+    
+    # return A(t, c)
+    return I_u_c
+
+def top_k_terms(V, C, D, k):
+    print "\nGetting top {} terms of each class".format(k)
+    mi = defaultdict(dd_float)
+    
+    for c in C:
+        print c
+        for t in V[c]:
+            mi[c][t] = get_mi(t, c, D)
+
+        mi[c] = dict(Counter(mi[c]).most_common(k))
+    
+    return mi
+
 if __name__ == '__main__':
     # Change to KVR1000.csv.gz if this becomes too slow for you
     D = pd.read_csv('KVR.csv', sep='\t', encoding='utf-8', index_col=0, 
@@ -75,7 +141,8 @@ if __name__ == '__main__':
                u' Defensie (DEF)']
 
     # Filter out rows with unwanted classes
-    D_filtered  = D[D.ministerie.isin(classes)]
+    D_cut       = D[D.ministerie.isin(classes)]
+    D_filtered  = D_cut.sample(frac=0.01, random_state=50)
     cc_filtered = D_filtered.ministerie.value_counts(normalize=True)
     C_filtered  = dict(zip(cc_filtered.index.tolist(), 
         D_filtered.ministerie.value_counts(normalize=True).tolist()))
@@ -86,8 +153,19 @@ if __name__ == '__main__':
 
     V, prior, condprob = train_multinomial(C_filtered, train)
 
+    with open("vocabulary_titel.pickle", "wb") as handle:
+        pickle.dump(V, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
     with open("prior_titel.pickle", "wb") as handle:
-        pickle.dump(prior, handle)
+        pickle.dump(prior, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    with open("condprob_titel.pickle", "wb") as handle:
+        pickle.dump(condprob, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    print json.dumps(top_k_terms(V, C_filtered, train, 10))
+
+    # with open("prior_titel.pickle", "wb") as handle:
+    #     pickle.dump(prior, handle)
 
     # correct, wrong = 0, 0
 
@@ -95,8 +173,8 @@ if __name__ == '__main__':
 
     # # For each document in the test set, get the text in its title and predict
     # # its class 
-    # for i in range(len(test.titel)):
-    #     text = "\n".join(list(test.titel)[i].split())
+    # for i in range(len(test.vraag)):
+    #     text = "\n".join(list(test.vraag)[i].split())
     #     predicted_class = apply_multinomial(C_filtered, V, prior, 
     #         condprob, nltk.word_tokenize(text))
     #     if predicted_class == list(test.ministerie)[i]:
