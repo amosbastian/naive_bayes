@@ -120,7 +120,6 @@ def top_k_terms(V, C, D, k):
         for t in V[c]:
             mi[c][t] = get_mi(t, c, D)
 
-        # Hier alleen top k terms in dictionary laten per class
         mi[c] = dict(Counter(mi[c]).most_common(k))
     
     return mi
@@ -144,8 +143,8 @@ if __name__ == '__main__':
     
     V, prior, condprob = train_multinomial(C, train)
     
-    top_kek = top_k_terms(V, C, train, 3)
-    
+    top_kek = top_k_terms(V, C, train, 5)
+
     topkV = defaultdict(list)
     print top_kek
     for cls in top_kek:
