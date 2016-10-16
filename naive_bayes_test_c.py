@@ -42,16 +42,10 @@ def train_multinomial(C, D):
 
     return V, prior, condprob
 
-<<<<<<< HEAD
-=======
-def extract_tokens(V, d):
-    return [token for token in d if token in V["all_classes"]]
 
->>>>>>> 5cd27ef58206996b7d3a3b3e7695019584b934c1
 def apply_multinomial(C, V, prior, condprob, d):
     score = defaultdict(float)
     for c in C:
-        print c
         score[c] = math.log(prior[c])
         W = list(V[c])
         for t in W:
@@ -147,20 +141,8 @@ if __name__ == '__main__':
     V, prior, condprob = train_multinomial(C, train)
     
     top_kek = top_k_terms(V, C, train, 3)
-<<<<<<< HEAD
     
     for i in range(len(test.titel)):
         text = "\n".join(list(test.titel)[i].split())
         predicted_class = apply_multinomial(C, top_kek, prior, condprob, nltk.word_tokenize(text))
         print "{} | {}".format(list(test.ministerie)[i], predicted_class)
-=======
-    topkV = defaultdict(list)
-    
-    for cls in top_kek:
-        topkV[cls] = dict(Counter(top_kek[cls]).most_common(5))
-    
-    for i in range(len(test.titel)):
-        text = "\n".join(list(test.titel)[i].split())
-        predicted_class = apply_multinomial(C, topkV, prior, condprob, nltk.word_tokenize(text))
-        print "{} | {}".format(list(test.ministerie)[i], predicted_class)
->>>>>>> 5cd27ef58206996b7d3a3b3e7695019584b934c1
