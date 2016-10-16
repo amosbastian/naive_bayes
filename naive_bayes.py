@@ -121,18 +121,21 @@ def top_k_terms(V, C, D, k):
 
 
 def get_F1(c, test, C, topkV, prior, condprob):
-    test_filtered = test[test.ministerie == c]
-    
-    correct = 0
     relevant_retrieved = 0
-    relevant_items = len(test_filtered)
+    relevant_items = len(test[test.ministerie == c])
     items_retrieved = len(test.titel)
+    
+    
     for i in range(len(test.titel)):
+        # retrieve text of a test document
         text = "\n".join(list(test.titel)[i].split(' '))
+        
+        # predict the class using apply_multinomial
         pred_c = apply_multinomial(C, topkV, prior, condprob, nltk.word_tokenize(text))
         real_c = list(test.ministerie)[i]
-        #print real_c, "\t|", pred_c
         
+        # count relevant items retrieved if the class has been guessed
+        # correctly and corresponds to class c
         if real_c == pred_c == c:
             relevant_retrieved += 1
             
@@ -140,12 +143,15 @@ def get_F1(c, test, C, topkV, prior, condprob):
     print "relevant_items", relevant_items
     print "items_retrieved", items_retrieved
     
+    # Calculate precision and Recall
     Prec = 0
     Rec = 0
     if items_retrieved != 0:
         Prec = float(relevant_retrieved) / float(items_retrieved) 
     if items_retrieved != 0:
-        Rec = float(relevant_retrieved) / float(relevant_items) 
+        Rec = float(relevant_retrieved) / float(relevant_items)
+        
+    # use default a = 0.5, calculate and return F1.
     a = 0.5
     F1 = 1 / ((a / Prec) + ((1 - a) / Rec))
     
@@ -184,16 +190,20 @@ if __name__ == '__main__':
     correct, wrong = 0, 0
 
 
+    # Get the top k terms for each class
     top_kek = top_k_terms(V, C_filtered, train, 20)
 
+    # Create a dict and put all the top k terms from every class into
+    # a dict as a new vocabulary
     topkV = defaultdict(list)
-    
     for cls in top_kek:
         topkV[cls].extend(top_kek[cls])
         topkV["all_classes"].extend(top_kek[cls])
     
+    # remove duplicates
     topkV["all_classes"] = list(set(topkV["all_classes"]))
-        
+    
+    # Calculate the F1 for a class
     print get_F1(u' Justitie (JUS)', test, C_filtered, topkV, prior, condprob)
     
     
